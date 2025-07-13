@@ -14,13 +14,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Modern UI with custom theme
+# Modern UI with vibrant color scheme and animations
 st.markdown("""
 <style>
     :root {
-        --primary: #3a86ff;
-        --secondary: #8338ec;
-        --accent: #ff006e;
+        --primary: #4361ee;
+        --secondary: #3f37c9;
+        --accent: #4cc9f0;
+        --vibrant1: #f72585;
+        --vibrant2: #7209b7;
         --background: #f8f9fa;
         --card: #ffffff;
         --text: #212529;
@@ -31,6 +33,14 @@ st.markdown("""
     [data-testid="stAppViewContainer"] {
         background-color: var(--background);
         background-image: linear-gradient(135deg, #f5f7fa 0%, #e4e7f4 100%);
+        animation: gradientBG 15s ease infinite;
+        background-size: 400% 400%;
+    }
+    
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
     
     .st-bb {background-color: var(--card);}
@@ -38,35 +48,54 @@ st.markdown("""
     header[data-testid="stHeader"] {
         background: rgba(255,255,255,0.9);
         backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
     
     .stButton>button {
-        background-color: var(--primary);
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
         color: white;
-        border-radius: 12px;
-        padding: 10px 20px;
+        border-radius: 15px;
+        padding: 12px 24px;
         font-weight: 600;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         border: none;
-        box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 6px 12px rgba(67, 97, 238, 0.3);
+        position: relative;
+        overflow: hidden;
     }
     
     .stButton>button:hover {
-        background-color: #2a75ff;
-        transform: translateY(-2px);
-        box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 20px rgba(67, 97, 238, 0.4);
+    }
+    
+    .stButton>button:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: 0.5s;
+    }
+    
+    .stButton>button:hover:after {
+        left: 100%;
     }
     
     .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        border-radius: 12px;
-        padding: 12px 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        border: 1px solid #e0e0e0;
+        border-radius: 15px;
+        padding: 14px 18px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
     }
     
     .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
         border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        transform: scale(1.01);
     }
     
     .stRadio>div {
@@ -76,71 +105,109 @@ st.markdown("""
     
     .stRadio>div>label {
         background: var(--card);
-        padding: 15px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
+        padding: 18px 24px;
+        border-radius: 15px;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         border: 2px solid transparent;
+        cursor: pointer;
     }
     
     .stRadio>div>label:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 7px 14px rgba(0,0,0,0.1);
+        transform: translateY(-5px) scale(1.03);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         border-color: var(--primary);
     }
     
     .stRadio>div>label[data-baseweb="radio"]:has(> div:first-child[aria-checked="true"]) {
-        background-color: rgba(58, 134, 255, 0.1);
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(63, 55, 201, 0.15));
         border-color: var(--primary);
+        transform: translateY(-3px);
     }
     
     .card {
         background: var(--card);
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        margin-bottom: 25px;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 1px solid rgba(0,0,0,0.03);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .card:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--vibrant1), var(--vibrant2));
+        transition: width 0.5s ease;
     }
     
     .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        transform: translateY(-8px) scale(1.01);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    
+    .card:hover:before {
+        width: 8px;
     }
     
     .language-badge {
-        padding: 8px 18px;
+        padding: 10px 22px;
         border-radius: 50px;
         font-weight: bold;
         display: inline-block;
-        margin-bottom: 15px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, var(--vibrant1), var(--vibrant2));
         color: white;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 6px 15px rgba(247, 37, 133, 0.3);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.5); }
+        70% { box-shadow: 0 0 0 15px rgba(247, 37, 133, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(247, 37, 133, 0); }
     }
     
     .user-msg {
-        background: linear-gradient(135deg, #3a86ff, #4361ee);
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
         color: white;
-        border-radius: 18px 18px 4px 18px;
-        padding: 15px 20px;
-        margin: 10px 0;
+        border-radius: 22px 22px 5px 22px;
+        padding: 18px 24px;
+        margin: 15px 0;
         max-width: 80%;
         align-self: flex-end;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 20px rgba(67, 97, 238, 0.25);
+        animation: slideInRight 0.5s ease;
     }
     
     .assistant-msg {
         background: white;
         color: var(--text);
-        border-radius: 18px 18px 18px 4px;
-        padding: 15px 20px;
-        margin: 10px 0;
+        border-radius: 22px 22px 22px 5px;
+        padding: 18px 24px;
+        margin: 15px 0;
         max-width: 80%;
         align-self: flex-start;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         border: 1px solid #f0f0f0;
+        animation: slideInLeft 0.5s ease;
+    }
+    
+    @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-30px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    
+    @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(30px); }
+        to { opacity: 1; transform: translateX(0); }
     }
     
     .tab-content {
@@ -148,8 +215,38 @@ st.markdown("""
     }
     
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
+        from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .glowing-border {
+        position: relative;
+        box-shadow: 0 0 10px var(--accent);
+        animation: glow 1.5s infinite alternate;
+    }
+    
+    @keyframes glow {
+        from { box-shadow: 0 0 10px -10px var(--accent); }
+        to { box-shadow: 0 0 10px 10px rgba(76, 201, 240, 0.3); }
+    }
+    
+    .floating {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+        100% { transform: translateY(0px); }
+    }
+    
+    .icon-hover {
+        transition: all 0.5s ease;
+    }
+    
+    .icon-hover:hover {
+        transform: rotate(15deg) scale(1.2);
+        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
     }
 </style>
 """, unsafe_allow_html=True)
@@ -220,15 +317,17 @@ def generate_audio_response(text, language):
 # App layout
 st.title("🌍 Indigenous Language Assistant")
 st.markdown("""
-<div style="font-size:1.1rem; color:#555; margin-bottom:30px;">
+<div style="font-size:1.1rem; color:#555; margin-bottom:30px; animation: fadeIn 1.5s ease;">
 Empowering communication in Zulu and Tswana through accessible language technology
 </div>
 """, unsafe_allow_html=True)
 
 # Sidebar with modern design
 with st.sidebar:
-    st.markdown("<div style='text-align:center; margin-bottom:20px;'>"
-                "<img src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Flag_of_South_Africa.svg/1200px-Flag_of_South_Africa.svg.png' width='80' style='border-radius:50%; box-shadow:0 4px 10px rgba(0,0,0,0.1);'>"
+    st.markdown("<div style='text-align:center; margin-bottom:30px;'>"
+                "<div class='floating' style='margin-bottom:20px;'>"
+                "<img src='https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Flag_of_South_Africa.svg/1200px-Flag_of_South_Africa.svg.png' width='80' style='border-radius:50%; box-shadow:0 10px 30px rgba(0,0,0,0.2);'>"
+                "</div>"
                 "<h2 style='margin-top:10px;'>Settings</h2></div>", 
                 unsafe_allow_html=True)
     
@@ -257,11 +356,13 @@ with st.sidebar:
     with st.container():
         st.subheader("About")
         st.markdown("""
-        - **Version:** 2.1
-        - **Developed by:** Language Access Initiative
-        - **Data Source:** NWU Language Lab
-        - **Technology:** Google Text-to-Speech
-        """)
+        <div class="icon-hover">
+        - **🌐 Version:** 2.1
+        - **👨‍💻 Developed by:** Language Access Initiative
+        - **📊 Data Source:** NWU Language Lab
+        - **🔊 Technology:** Google Text-to-Speech
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("""
         <div style='margin-top:30px; text-align:center; color:#777; font-size:0.9rem;'>
@@ -294,13 +395,14 @@ with tab1:
                         chat_container.markdown(f"<div class='assistant-msg'><b>Assistant:</b> {msg['text']}</div>", 
                                               unsafe_allow_html=True)
             else:
-                chat_container.info("Start a conversation by typing a message below")
+                chat_container.info("✨ Start a conversation by typing a message below")
         
         # Input area
         with st.form("input_form", clear_on_submit=True):
-            user_input = st.text_area("Your message:", value="", height=100, 
-                                     placeholder=f"Type your message in {st.session_state.selected_language}...")
-            submit_button = st.form_submit_button("Send", use_container_width=True)
+            user_input = st.text_area("Your message:", value="", height=120, 
+                                     placeholder=f"Type your message in {st.session_state.selected_language}...",
+                                     key="user_input")
+            submit_button = st.form_submit_button("🚀 Send", use_container_width=True)
             
             if submit_button and user_input:
                 st.session_state.user_input = user_input
@@ -361,14 +463,14 @@ with tab1:
             if st.session_state.audio_response:
                 card.audio(st.session_state.audio_response, format="audio/mp3")
                 card.download_button(
-                    label="Download Audio",
+                    label="📥 Download Audio",
                     data=st.session_state.audio_response,
                     file_name=f"{st.session_state.selected_language}_response.mp3",
                     mime="audio/mp3",
                     use_container_width=True
                 )
             else:
-                card.info("Submit a message to generate an audio response")
+                card.info("🎤 Submit a message to generate an audio response")
             
             card.markdown("</div>", unsafe_allow_html=True)
         
@@ -385,10 +487,10 @@ with tab1:
             # Fixed KeyError by using appropriate keys for each domain
             if domain_key == 'agriculture':
                 action_key = 'pests'
-                action_label = "Ask about pests"
+                action_label = "🐜 Ask about pests"
             else:
                 action_key = 'hygiene'
-                action_label = "Ask about hygiene"
+                action_label = "🧼 Ask about hygiene"
             
             if card.button(action_label, use_container_width=True):
                 response = lang_data[domain_key][action_key]
@@ -402,7 +504,7 @@ with tab1:
                 )
                 st.rerun()
                 
-            if card.button("Request greeting", use_container_width=True):
+            if card.button("👋 Request greeting", use_container_width=True):
                 response = lang_data['greeting']
                 st.session_state.conversation.append({
                     "speaker": "Assistant",
@@ -414,7 +516,7 @@ with tab1:
                 )
                 st.rerun()
                 
-            if card.button("Clear Conversation", use_container_width=True):
+            if card.button("🗑️ Clear Conversation", use_container_width=True):
                 st.session_state.conversation = []
                 st.session_state.audio_response = None
                 st.session_state.user_input = ""
@@ -460,9 +562,9 @@ with tab2:
                 st.markdown("<div class='card'>", unsafe_allow_html=True)
                 st.markdown("#### Learning Materials")
                 st.markdown("""
-                - [Zulu Grammar Guide](https://example.com)
-                - [Zulu-English Dictionary](https://example.com)
-                - [Cultural Resources](https://example.com)
+                - [📖 Zulu Grammar Guide](https://example.com)
+                - [📚 Zulu-English Dictionary](https://example.com)
+                - [🌍 Cultural Resources](https://example.com)
                 """)
                 st.markdown("</div>", unsafe_allow_html=True)
     
@@ -493,9 +595,9 @@ with tab2:
                 st.markdown("<div class='card'>", unsafe_allow_html=True)
                 st.markdown("#### Learning Materials")
                 st.markdown("""
-                - [Tswana Grammar Guide](https://example.com)
-                - [Tswana-English Dictionary](https://example.com)
-                - [Cultural Resources](https://example.com)
+                - [📖 Tswana Grammar Guide](https://example.com)
+                - [📚 Tswana-English Dictionary](https://example.com)
+                - [🌍 Cultural Resources](https://example.com)
                 """)
                 st.markdown("</div>", unsafe_allow_html=True)
     
@@ -516,9 +618,9 @@ with tab2:
         language = st.selectbox("Language", ["Zulu", "Tswana"])
         contribution = st.text_area("Contribution (phrase, translation, or resource)")
         
-        submitted = st.form_submit_button("Submit Contribution")
+        submitted = st.form_submit_button("✨ Submit Contribution")
         if submitted:
-            st.success("Thank you for your contribution! Our language team will review it.")
+            st.success("🌟 Thank you for your contribution! Our language team will review it.")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -556,10 +658,11 @@ with tab3:
                 names="Language", 
                 values="count",
                 color="Language",
-                color_discrete_map={"Zulu": "#3a86ff", "Tswana": "#8338ec"},
+                color_discrete_map={"Zulu": "#f72585", "Tswana": "#7209b7"},
                 hole=0.3
             )
             fig1.update_traces(textposition='inside', textinfo='percent+label')
+            fig1.update_layout(showlegend=False)
             st.plotly_chart(fig1, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
         
@@ -572,9 +675,11 @@ with tab3:
                 x="Region", 
                 y="Usage",
                 color="Region",
+                color_discrete_sequence=["#4361ee", "#3f37c9", "#4cc9f0", "#f72585", "#7209b7"],
                 title="Usage by Region",
-                height=300
+                height=350
             )
+            fig2.update_layout(showlegend=False)
             st.plotly_chart(fig2, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
     
@@ -588,11 +693,12 @@ with tab3:
                 names="Domain", 
                 values="count",
                 color="Domain",
-                color_discrete_sequence=["#3a86ff", "#8338ec"],
+                color_discrete_map={"Healthcare": "#4361ee", "Agriculture": "#4cc9f0"},
                 title="Usage by Application Domain",
                 hole=0.3
             )
             fig3.update_traces(textposition='inside', textinfo='percent+label')
+            fig3.update_layout(showlegend=False)
             st.plotly_chart(fig3, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
         
@@ -608,13 +714,14 @@ with tab3:
                 y=[zulu_growth, tswana_growth],
                 title="Monthly Active Users",
                 labels={"x": "Month", "value": "Users"},
-                color_discrete_sequence=["#3a86ff", "#8338ec"]
+                color_discrete_sequence=["#f72585", "#7209b7"]
             )
             fig4.update_layout(
                 showlegend=True,
+                legend_title="Language",
                 yaxis_title="Users",
                 xaxis_title="Month",
-                height=300
+                height=350
             )
             fig4.data[0].name = "Zulu"
             fig4.data[1].name = "Tswana"
@@ -626,8 +733,8 @@ st.divider()
 st.markdown("""
 <div style="text-align:center; color:#777; font-size:0.9em; padding:20px;">
     Indigenous Language Assistant v2.1 | 
-    <a href="#" style="color:#3a86ff;">Privacy Policy</a> | 
-    <a href="#" style="color:#3a86ff;">Research Methodology</a> | 
-    <a href="#" style="color:#3a86ff;">Community Guidelines</a>
+    <a href="#" style="color:#4361ee;">Privacy Policy</a> | 
+    <a href="#" style="color:#4361ee;">Research Methodology</a> | 
+    <a href="#" style="color:#4361ee;">Community Guidelines</a>
 </div>
 """, unsafe_allow_html=True)

@@ -14,20 +14,157 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Modern UI with vibrant color scheme and animations
+# Modern UI with your custom colors
 st.markdown("""
 <style>
     :root {
-        --primary: #4361ee;
-        --secondary: #3f37c9;
-        --accent: #4cc9f0;
-        --vibrant1: #f72585;
-        --vibrant2: #7209b7;
-        --background: #f8f9fa;
-        --card: #ffffff;
-        --text: #212529;
-        --success: #06d6a0;
-        --warning: #ffd166;
+        --primary: #4CAF50;         /* green */
+        --secondary: #4DB6AC;       /* teal */
+        --accent: #C0CA33;          /* lime */
+        --vibrant1: #4CAF50;        /* green */
+        --vibrant2: #263238;        /* navy */
+        --background: #FFFFFF;      /* white */
+        --card: #FFFFFF;            /* white */
+        --text: #263238;            /* navy */
+        --success: #4DB6AC;         /* teal */
+        --warning: #E0E0E0;         /* light grey */
+    }
+    
+    [data-testid="stAppViewContainer"] {
+        background-color: var(--background);
+        background-image: linear-gradient(135deg, #f5f7fa 0%, #e0e0e0 100%);
+        animation: gradientBG 15s ease infinite;
+        background-size: 400% 400%;
+    }
+    
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    header[data-testid="stHeader"] {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .stButton>button {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border-radius: 15px;
+        padding: 12px 24px;
+        font-weight: 600;
+        transition: all 0.4s ease;
+        border: none;
+        box-shadow: 0 6px 12px rgba(76, 175, 80, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 20px rgba(76, 175, 80, 0.4);
+    }
+    
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
+        border-radius: 15px;
+        padding: 14px 18px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+        transform: scale(1.01);
+    }
+    
+    .stRadio>div>label {
+        background: var(--card);
+        padding: 18px 24px;
+        border-radius: 15px;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        transition: all 0.4s ease;
+        border: 2px solid transparent;
+        cursor: pointer;
+    }
+    
+    .stRadio>div>label:hover {
+        transform: translateY(-5px) scale(1.03);
+        border-color: var(--primary);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .stRadio>div>label[data-baseweb="radio"]:has(> div:first-child[aria-checked="true"]) {
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(77, 182, 172, 0.15));
+        border-color: var(--primary);
+        transform: translateY(-3px);
+    }
+    
+    .card {
+        background: var(--card);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+        transition: all 0.5s ease;
+        border: 1px solid rgba(0,0,0,0.03);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .card:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--vibrant1), var(--vibrant2));
+        transition: width 0.5s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-8px) scale(1.01);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    
+    .card:hover:before {
+        width: 8px;
+    }
+    
+    .language-badge {
+        padding: 10px 22px;
+        border-radius: 50px;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, var(--vibrant1), var(--vibrant2));
+        color: white;
+        box-shadow: 0 6px 15px rgba(76, 175, 80, 0.3);
+    }
+    
+    .user-msg {
+        background: var(--primary);
+        color: white;
+        border-radius: 22px 22px 5px 22px;
+        padding: 18px 24px;
+        margin: 15px 0;
+        max-width: 80%;
+        align-self: flex-end;
+    }
+    
+    .assistant-msg {
+        background: white;
+        color: var(--text);
+        border-radius: 22px 22px 22px 5px;
+        padding: 18px 24px;
+        margin: 15px 0;
+        max-width: 80%;
+        align-self: flex-start;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
     }
     
     [data-testid="stAppViewContainer"] {

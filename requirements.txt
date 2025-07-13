@@ -1,8 +1,6 @@
 streamlit==1.46.1
-pydub==0.25.1
 gtts==2.5.1
 langdetect==1.0.9
 plotly==5.18.0
 pandas==2.0.3
 numpy==1.24.3
-ffmpeg-python==0.2.0

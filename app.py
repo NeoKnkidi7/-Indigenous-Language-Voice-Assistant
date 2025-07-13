@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import av
@@ -12,8 +11,13 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import os
+import sys
 
-# Set environment variable for Transformers
+# Add FFmpeg to system path - CRITICAL FIX
+os.environ["PATH"] += os.pathsep + '/usr/bin/'
+sys.path.append('/usr/bin/ffmpeg')
+
+# Set environment variables
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # App configuration
@@ -81,6 +85,8 @@ if 'domain' not in st.session_state:
     st.session_state.domain = "Healthcare"
 if 'listening' not in st.session_state:
     st.session_state.listening = False
+if 'last_transcription' not in st.session_state:
+    st.session_state.last_transcription = ""
 
 # Load language resources
 LANGUAGE_RESOURCES = {
@@ -112,14 +118,19 @@ LANGUAGE_RESOURCES = {
     }
 }
 
-# Initialize ASR pipeline
+# Initialize ASR pipeline with local model
 @st.cache_resource
 def load_asr_model():
-    return pipeline(
-        "automatic-speech-recognition", 
-        model="facebook/wav2vec2-large-xlsr-53",
-        device="cuda" if torch.cuda.is_available() else "cpu"
-    )
+    try:
+        return pipeline(
+            "automatic-speech-recognition", 
+            model="./wav2vec2-large-xlsr-53",  # Local model path
+            tokenizer="./wav2vec2-large-xlsr-53",  # Local tokenizer
+            device="cuda" if torch.cuda.is_available() else "cpu"
+        )
+    except Exception as e:
+        st.error(f"Model loading failed: {str(e)}")
+        st.stop()
 
 asr_pipeline = load_asr_model()
 
@@ -133,21 +144,28 @@ def audio_frame_callback(frame: av.AudioFrame) -> av.AudioFrame:
             "raw": audio,
             "sampling_rate": frame.sample_rate
         }
-        results = asr_pipeline(inputs)
-        st.session_state.last_transcription = results['text']
-        st.session_state.listening = False
+        try:
+            results = asr_pipeline(inputs)
+            st.session_state.last_transcription = results['text']
+            st.session_state.listening = False
+        except Exception as e:
+            st.error(f"Speech recognition error: {str(e)}")
     
     return frame
 
 # Generate audio response
 def generate_audio_response(text, language):
-    lang_code = "zu" if language == "Zulu" else "tn"
-    tts = gTTS(text=text, lang=lang_code, slow=False)
-    tts.save("response.mp3")
-    audio_file = open("response.mp3", "rb")
-    audio_bytes = audio_file.read()
-    audio_file.close()
-    return audio_bytes
+    try:
+        lang_code = "zu" if language == "Zulu" else "tn"
+        tts = gTTS(text=text, lang=lang_code, slow=False)
+        tts.save("response.mp3")
+        audio_file = open("response.mp3", "rb")
+        audio_bytes = audio_file.read()
+        audio_file.close()
+        return audio_bytes
+    except Exception as e:
+        st.error(f"Audio generation failed: {str(e)}")
+        return None
 
 # App layout
 st.title("🗣️ Indigenous Language Voice Assistant")
@@ -229,7 +247,7 @@ with tab1:
         else:
             st.info("Click 'Start Listening' to begin voice input")
         
-        if 'last_transcription' in st.session_state:
+        if st.session_state.last_transcription:
             st.markdown("### 💬 Transcription")
             st.write(st.session_state.last_transcription)
             

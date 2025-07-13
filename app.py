@@ -11,6 +11,10 @@ from langdetect import detect
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import os
+
+# Set environment variable for Transformers
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # App configuration
 st.set_page_config(
@@ -49,6 +53,20 @@ st.markdown("""
     .zulu-badge {background-color: #ffd54f; color: #1e3d36;}
     .tswana-badge {background-color: #4fc3f7; color: #1e3d36;}
     .response-card {background-color: #e8f5e9; padding: 20px; border-radius: 10px; margin: 15px 0;}
+    .mic-animation {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #e63946;
+        animation: pulse 1.5s infinite;
+        margin-right: 10px;
+    }
+    @keyframes pulse {
+        0% {transform: scale(0.8); opacity: 0.7;}
+        50% {transform: scale(1.2); opacity: 1;}
+        100% {transform: scale(0.8); opacity: 0.7;}
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -61,6 +79,8 @@ if 'audio_response' not in st.session_state:
     st.session_state.audio_response = None
 if 'domain' not in st.session_state:
     st.session_state.domain = "Healthcare"
+if 'listening' not in st.session_state:
+    st.session_state.listening = False
 
 # Load language resources
 LANGUAGE_RESOURCES = {
@@ -115,6 +135,7 @@ def audio_frame_callback(frame: av.AudioFrame) -> av.AudioFrame:
         }
         results = asr_pipeline(inputs)
         st.session_state.last_transcription = results['text']
+        st.session_state.listening = False
     
     return frame
 
@@ -191,13 +212,22 @@ with tab1:
         st.markdown("### 🎤 Voice Input")
         st.caption("Click 'Start' and speak in your indigenous language")
         
-        webrtc_ctx = webrtc_streamer(
-            key="speech-to-text",
-            mode=WebRtcMode.SENDONLY,
-            audio_frame_callback=audio_frame_callback,
-            media_stream_constraints={"audio": True, "video": False},
-            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-        )
+        if st.button("Start Listening", key="start_listening"):
+            st.session_state.listening = True
+            
+        if st.session_state.listening:
+            st.markdown("<div class='mic-animation'></div> Listening... Speak now", unsafe_allow_html=True)
+            
+            webrtc_ctx = webrtc_streamer(
+                key="speech-to-text",
+                mode=WebRtcMode.SENDONLY,
+                audio_frame_callback=audio_frame_callback,
+                media_stream_constraints={"audio": True, "video": False},
+                rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+                async_processing=True
+            )
+        else:
+            st.info("Click 'Start Listening' to begin voice input")
         
         if 'last_transcription' in st.session_state:
             st.markdown("### 💬 Transcription")

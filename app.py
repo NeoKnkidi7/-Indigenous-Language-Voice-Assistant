@@ -4,9 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import os
-
-# Set environment variables
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+import tempfile
 
 # App configuration
 st.set_page_config(
@@ -45,12 +43,6 @@ st.markdown("""
     .zulu-badge {background-color: #ffd54f; color: #1e3d36;}
     .tswana-badge {background-color: #4fc3f7; color: #1e3d36;}
     .response-card {background-color: #e8f5e9; padding: 20px; border-radius: 10px; margin: 15px 0;}
-    .voice-input-container {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin-bottom: 20px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,15 +92,18 @@ LANGUAGE_RESOURCES = {
     }
 }
 
-# Generate audio response
+# Generate audio response with correct language codes
 def generate_audio_response(text, language):
     try:
+        # Correct language codes: Zulu = 'zu', Tswana = 'tn' (not 'ts' as sometimes documented)
         lang_code = "zu" if language == "Zulu" else "tn"
         tts = gTTS(text=text, lang=lang_code, slow=False)
-        tts.save("response.mp3")
-        audio_file = open("response.mp3", "rb")
-        audio_bytes = audio_file.read()
-        audio_file.close()
+        
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            tts.save(tmp.name)
+            audio_bytes = tmp.read()
+        
         return audio_bytes
     except Exception as e:
         st.error(f"Audio generation failed: {str(e)}")
@@ -160,7 +155,7 @@ with st.sidebar:
     st.divider()
     st.markdown("""
     *Developed with ❤️ for South African communities*  
-    *v2.0 | © 2023 Language Access Initiative*
+    *v2.1 | © 2023 Language Access Initiative*
     """)
 
 # Main content tabs
@@ -226,7 +221,7 @@ with tab1:
                 response, 
                 st.session_state.selected_language
             )
-            st.experimental_rerun()
+            st.rerun()
         
         # Display conversation
         st.markdown("### 📝 Conversation History")
@@ -235,6 +230,8 @@ with tab1:
                 speaker = "👤 You" if msg['speaker'] == "User" else "🤖 Assistant"
                 st.markdown(f"**{speaker}:** {msg['text']}")
                 st.divider()
+        else:
+            st.info("No conversation yet. Submit a query to start!")
     
     with col2:
         # Response section
@@ -266,7 +263,7 @@ with tab1:
                 response, 
                 st.session_state.selected_language
             )
-            st.experimental_rerun()
+            st.rerun()
             
         if st.button("Request greeting"):
             response = LANGUAGE_RESOURCES[st.session_state.selected_language]['greeting']
@@ -278,13 +275,13 @@ with tab1:
                 response, 
                 st.session_state.selected_language
             )
-            st.experimental_rerun()
+            st.rerun()
             
         if st.button("Clear Conversation"):
             st.session_state.conversation = []
             st.session_state.audio_response = None
             st.session_state.user_input = ""
-            st.experimental_rerun()
+            st.rerun()
 
 with tab2:
     st.subheader("Language Resources")
@@ -325,7 +322,6 @@ with tab2:
         - [Zulu Grammar Guide](https://example.com)
         - [Zulu-English Dictionary](https://example.com)
         - [Cultural Resources](https://example.com)
-        - [Language Learning App](https://example.com)
         """)
     
     with col2:
@@ -358,7 +354,6 @@ with tab2:
         - [Tswana Grammar Guide](https://example.com)
         - [Tswana-English Dictionary](https://example.com)
         - [Cultural Resources](https://example.com)
-        - [Language Learning Videos](https://example.com)
         """)
     
     st.divider()
@@ -374,7 +369,8 @@ with tab2:
         language = st.selectbox("Language", ["Zulu", "Tswana"])
         contribution = st.text_area("Contribution (phrase, translation, or resource)")
         
-        if st.form_submit_button("Submit Contribution"):
+        submitted = st.form_submit_button("Submit Contribution")
+        if submitted:
             st.success("Thank you for your contribution! Our language team will review it.")
 
 with tab3:
@@ -466,7 +462,7 @@ with tab3:
 st.divider()
 st.markdown("""
 <div style="text-align:center; color:#6c757d; font-size:0.9em; padding:20px;">
-    Indigenous Language Voice Assistant v2.0 | 
+    Indigenous Language Voice Assistant v2.1 | 
     <a href="#" style="color:#2c5f2d;">Privacy Policy</a> | 
     <a href="#" style="color:#2c5f2d;">Research Methodology</a> | 
     <a href="#" style="color:#2c5f2d;">Community Guidelines</a>

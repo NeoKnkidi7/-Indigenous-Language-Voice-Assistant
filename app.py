@@ -1,19 +1,16 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import av
-import torch
-from transformers import pipeline
 from gtts import gTTS
 import base64
 from pydub import AudioSegment
-from langdetect import detect
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import os
 import sys
+import time
 
-# Add FFmpeg to system path - CRITICAL FIX
+# Add FFmpeg to system path
 os.environ["PATH"] += os.pathsep + '/usr/bin/'
 sys.path.append('/usr/bin/ffmpeg')
 
@@ -71,6 +68,12 @@ st.markdown("""
         50% {transform: scale(1.2); opacity: 1;}
         100% {transform: scale(0.8); opacity: 0.7;}
     }
+    .voice-input-container {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 20px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -85,8 +88,8 @@ if 'domain' not in st.session_state:
     st.session_state.domain = "Healthcare"
 if 'listening' not in st.session_state:
     st.session_state.listening = False
-if 'last_transcription' not in st.session_state:
-    st.session_state.last_transcription = ""
+if 'user_input' not in st.session_state:
+    st.session_state.user_input = ""
 
 # Load language resources
 LANGUAGE_RESOURCES = {
@@ -95,12 +98,14 @@ LANGUAGE_RESOURCES = {
         "agriculture": {
             "pests": "Ukulwa nezinambuzane, sebenzisa i-organic pesticide. Hlola izitshalo nsuku zonke.",
             "planting": "Isikhathi esihle sokutshala u-September kuya ku-October emaphandleni aseNingizimu Afrika.",
-            "soil": "Hlola umhlabathi wakho ngonyaka. Geza ngomquba wemvelo ukuze uthuthukise isimo somhlabathi."
+            "soil": "Hlola umhlabathi wakho ngonyaka. Geza ngomquba wemvelo ukuze uthuthukise isimo somhlabathi.",
+            "water": "Qinisekisa ukuthi izitshalo zakho zithola amanzi anele, ikakhulukazi ehlobo."
         },
         "healthcare": {
             "symptoms": "Uma unezimpawu ezingajwayelekile, xhumana nogoti wezempilo ngokushesha.",
             "medication": "Ungaphuze umuthi ngaphandle kokweluleka kudokotela.",
-            "hygiene": "Geza izandla zakho qhaba ngesikhathi eside ukuze uvimbele ukusakazeka kwegciwane."
+            "hygiene": "Geza izandla zakho qhaba ngesikhathi eside ukuze uvimbele ukusakazeka kwegciwane.",
+            "nutrition": "Idla ukudla okunomsoco okuhlanganisa imifino, izithelo kanye namaprotheni."
         }
     },
     "Tswana": {
@@ -108,50 +113,17 @@ LANGUAGE_RESOURCES = {
         "agriculture": {
             "pests": "Go lwa le disenyi, dirisa di-pesticide tsa tlhago. Sekaseka dimela letsatsi le letsatsi.",
             "planting": "Nako e e siameng go jala ke September go ya go October mo mafelong a Aforika Borwa.",
-            "soil": "Sekaseka mmu wa gago ngwaga le ngwaga. O ka dirisa motswako wa tlhago go tokafatsa mmu."
+            "soil": "Sekaseka mmu wa gago ngwaga le ngwaga. O ka dirisa motswako wa tlhago go tokafatsa mmu.",
+            "water": "Netefatsa gore dimela tsa gago di na le metsi a lekaneng, bogolo segologolo mo marung."
         },
         "healthcare": {
             "symptoms": "Fa o na le matshwao a a sa tlwaelegang, ikopanye le moapei wa tsa boitekanelo ka bonako.",
             "medication": "O se ka wa nwa ditlhare ntle le go laola ngaka.",
-            "hygiene": "Hlatswa diatla tsa gago ka nako e telele go thibela phetiso ya diruiwa."
+            "hygiene": "Hlatswa diatla tsa gago ka nako e telele go thibela phetiso ya diruiwa.",
+            "nutrition": "Ja dijo tse di nonneng tse di akaretsang merogo, maungo le diprotein."
         }
     }
 }
-
-# Initialize ASR pipeline with local model
-@st.cache_resource
-def load_asr_model():
-    try:
-        return pipeline(
-            "automatic-speech-recognition", 
-            model="./wav2vec2-large-xlsr-53",  # Local model path
-            tokenizer="./wav2vec2-large-xlsr-53",  # Local tokenizer
-            device="cuda" if torch.cuda.is_available() else "cpu"
-        )
-    except Exception as e:
-        st.error(f"Model loading failed: {str(e)}")
-        st.stop()
-
-asr_pipeline = load_asr_model()
-
-# Audio processing callback
-def audio_frame_callback(frame: av.AudioFrame) -> av.AudioFrame:
-    audio = frame.to_ndarray(format="f32le")
-    
-    # Process audio for ASR
-    if len(audio) > 0:
-        inputs = {
-            "raw": audio,
-            "sampling_rate": frame.sample_rate
-        }
-        try:
-            results = asr_pipeline(inputs)
-            st.session_state.last_transcription = results['text']
-            st.session_state.listening = False
-        except Exception as e:
-            st.error(f"Speech recognition error: {str(e)}")
-    
-    return frame
 
 # Generate audio response
 def generate_audio_response(text, language):
@@ -167,11 +139,18 @@ def generate_audio_response(text, language):
         st.error(f"Audio generation failed: {str(e)}")
         return None
 
+# Simple voice activity detection
+def detect_voice_activity(audio_frame):
+    # Simple RMS-based voice activity detection
+    audio_data = audio_frame.to_ndarray(format="f32le")
+    rms = np.sqrt(np.mean(audio_data**2))
+    return rms > 0.02  # Threshold for voice detection
+
 # App layout
 st.title("🗣️ Indigenous Language Voice Assistant")
 st.markdown("""
 **Bridging the digital divide for Zulu and Tswana speakers through voice technology**  
-*Powered by Mozilla DeepSpeech, NWU Language Lab, and Hugging Face Transformers*
+*Powered by Mozilla DeepSpeech, NWU Language Lab, and Google Text-to-Speech*
 """)
 st.divider()
 
@@ -195,84 +174,79 @@ with st.sidebar:
     st.divider()
     st.markdown("""
     **Technology Stack:**
-    - Mozilla DeepSpeech (ASR)
     - NWU Language Lab Resources
-    - Hugging Face Transformers
     - Google Text-to-Speech
+    - Streamlit Web Components
     """)
     
     st.divider()
     st.markdown("""
     **Supported Features:**
-    - Real-time speech recognition
+    - Text-based interaction
     - Agricultural advisory
     - Healthcare information
     - Multilingual responses
+    - Voice responses
     """)
     
     st.divider()
     st.markdown("""
     *Developed with ❤️ for South African communities*  
-    *v1.0 | © 2023 Language Access Initiative*
+    *v2.0 | © 2023 Language Access Initiative*
     """)
 
 # Main content tabs
-tab1, tab2, tab3 = st.tabs(["Voice Assistant", "Language Resources", "Usage Analytics"])
+tab1, tab2, tab3 = st.tabs(["Text Assistant", "Language Resources", "Usage Analytics"])
 
 with tab1:
-    st.subheader(f"{st.session_state.selected_language} Voice Assistant")
+    st.subheader(f"{st.session_state.selected_language} Text Assistant")
     st.markdown(f"<div class='language-badge {st.session_state.selected_language.lower()}-badge'>{st.session_state.selected_language} Mode • {st.session_state.domain}</div>", unsafe_allow_html=True)
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        # Voice input section
-        st.markdown("### 🎤 Voice Input")
-        st.caption("Click 'Start' and speak in your indigenous language")
+        # Text input section
+        st.markdown("### 💬 Text Input")
+        st.caption("Type your query in your indigenous language")
         
-        if st.button("Start Listening", key="start_listening"):
-            st.session_state.listening = True
-            
-        if st.session_state.listening:
-            st.markdown("<div class='mic-animation'></div> Listening... Speak now", unsafe_allow_html=True)
-            
-            webrtc_ctx = webrtc_streamer(
-                key="speech-to-text",
-                mode=WebRtcMode.SENDONLY,
-                audio_frame_callback=audio_frame_callback,
-                media_stream_constraints={"audio": True, "video": False},
-                rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-                async_processing=True
-            )
-        else:
-            st.info("Click 'Start Listening' to begin voice input")
+        user_input = st.text_area("Your message:", value=st.session_state.user_input, height=100)
+        submit_button = st.button("Submit")
         
-        if st.session_state.last_transcription:
-            st.markdown("### 💬 Transcription")
-            st.write(st.session_state.last_transcription)
+        if submit_button and user_input:
+            st.session_state.user_input = user_input
+            st.session_state.listening = False
             
             # Process query
             domain_key = st.session_state.domain.lower()
             lang_data = LANGUAGE_RESOURCES[st.session_state.selected_language]
             
-            # Simple intent recognition
+            # Enhanced intent recognition with multiple keywords
+            user_text = user_input.lower()
             response = lang_data['greeting']
-            if "pest" in st.session_state.last_transcription.lower():
+            
+            # Agriculture intents
+            if any(word in user_text for word in ["pest", "insect", "bug", "zinambuzane", "disenyi"]):
                 response = lang_data[domain_key]['pests']
-            elif "plant" in st.session_state.last_transcription.lower():
+            elif any(word in user_text for word in ["plant", "grow", "seed", "tshala", "jala"]):
                 response = lang_data[domain_key]['planting']
-            elif "soil" in st.session_state.last_transcription.lower():
+            elif any(word in user_text for word in ["soil", "dirt", "earth", "umhlabathi", "mmu"]):
                 response = lang_data[domain_key]['soil']
-            elif "symptom" in st.session_state.last_transcription.lower():
+            elif any(word in user_text for word in ["water", "irrigate", "rain", "amanzi", "metsi"]):
+                response = lang_data[domain_key]['water']
+                
+            # Healthcare intents
+            elif any(word in user_text for word in ["symptom", "pain", "fever", "impawu", "matshwao"]):
                 response = lang_data[domain_key]['symptoms']
-            elif "medic" in st.session_state.last_transcription.lower():
+            elif any(word in user_text for word in ["medic", "pill", "drug", "umuthi", "dithlare"]):
                 response = lang_data[domain_key]['medication']
-            elif "hygiene" in st.session_state.last_transcription.lower():
+            elif any(word in user_text for word in ["hygiene", "clean", "wash", "hlanza", "hlatswa"]):
                 response = lang_data[domain_key]['hygiene']
+            elif any(word in user_text for word in ["nutrition", "food", "diet", "ukudla", "dijo"]):
+                response = lang_data[domain_key]['nutrition']
             
             st.session_state.conversation.append({
                 "speaker": "User",
-                "text": st.session_state.last_transcription
+                "text": user_input
             })
             
             st.session_state.conversation.append({
@@ -285,16 +259,19 @@ with tab1:
                 response, 
                 st.session_state.selected_language
             )
-    
-    with col2:
-        # Response section
-        st.markdown("### 💬 Assistant Response")
+            st.experimental_rerun()
         
+        # Display conversation
+        st.markdown("### 📝 Conversation History")
         if st.session_state.conversation:
-            for msg in reversed(st.session_state.conversation[-2:]):
+            for msg in st.session_state.conversation:
                 speaker = "👤 You" if msg['speaker'] == "User" else "🤖 Assistant"
                 st.markdown(f"**{speaker}:** {msg['text']}")
                 st.divider()
+    
+    with col2:
+        # Response section
+        st.markdown("### 🔊 Audio Response")
         
         # Audio playback
         if st.session_state.audio_response:
@@ -305,6 +282,8 @@ with tab1:
                 file_name=f"{st.session_state.selected_language}_response.mp3",
                 mime="audio/mp3"
             )
+        else:
+            st.info("Submit a query to generate an audio response")
         
         # Domain-specific quick actions
         st.markdown("### ⚡ Quick Actions")
@@ -322,7 +301,7 @@ with tab1:
             )
             st.experimental_rerun()
             
-        if st.button("Request translation assistance"):
+        if st.button("Request greeting"):
             response = LANGUAGE_RESOURCES[st.session_state.selected_language]['greeting']
             st.session_state.conversation.append({
                 "speaker": "Assistant",
@@ -332,6 +311,12 @@ with tab1:
                 response, 
                 st.session_state.selected_language
             )
+            st.experimental_rerun()
+            
+        if st.button("Clear Conversation"):
+            st.session_state.conversation = []
+            st.session_state.audio_response = None
+            st.session_state.user_input = ""
             st.experimental_rerun()
 
 with tab2:
@@ -350,16 +335,22 @@ with tab2:
           - Hello: Sawubona
           - Thank you: Ngiyabonga
           - How are you?: Unjani?
+          - Goodbye: Hamba kahle
+          - Please: Ngiyacela
         
         - **Agriculture Terms:**
           - Soil: Umhlabathi
           - Crops: Izitshalo
           - Harvest: Isivuno
+          - Rain: Imvula
+          - Seeds: Imbewu
         
         - **Healthcare Terms:**
           - Doctor: Udokotela
           - Medicine: Umuthi
           - Symptoms: Izimpawu
+          - Hospital: Isibhedlela
+          - Health: Impilo
         """)
         
         st.markdown("#### Learning Materials")
@@ -367,6 +358,7 @@ with tab2:
         - [Zulu Grammar Guide](https://example.com)
         - [Zulu-English Dictionary](https://example.com)
         - [Cultural Resources](https://example.com)
+        - [Language Learning App](https://example.com)
         """)
     
     with col2:
@@ -376,16 +368,22 @@ with tab2:
           - Hello: Dumela
           - Thank you: Ke a leboga
           - How are you?: O tsogile jang?
+          - Goodbye: Tsamaya sentle
+          - Please: Ka kopo
         
         - **Agriculture Terms:**
           - Soil: Mmu
           - Crops: Dimerela
           - Harvest: Go roba
+          - Rain: Pula
+          - Seeds: Peo
         
         - **Healthcare Terms:**
           - Doctor: Ngaka
           - Medicine: Dithlare
           - Symptoms: Matshwao
+          - Hospital: Sephatlhe
+          - Health: Boitekanelo
         """)
         
         st.markdown("#### Learning Materials")
@@ -393,6 +391,7 @@ with tab2:
         - [Tswana Grammar Guide](https://example.com)
         - [Tswana-English Dictionary](https://example.com)
         - [Cultural Resources](https://example.com)
+        - [Language Learning Videos](https://example.com)
         """)
     
     st.divider()
@@ -419,10 +418,10 @@ with tab3:
     """)
     
     # Generate mock analytics data
-    languages = ["Zulu", "Tswana", "Zulu", "Tswana", "Zulu"]
-    domains = ["Healthcare", "Agriculture", "Healthcare", "Agriculture", "Healthcare"]
-    regions = ["KwaZulu-Natal", "North West", "Gauteng", "Limpopo", "Eastern Cape"]
-    usage = [120, 85, 95, 70, 110]
+    languages = ["Zulu", "Tswana", "Zulu", "Tswana", "Zulu", "Tswana", "Zulu"]
+    domains = ["Healthcare", "Agriculture", "Healthcare", "Agriculture", "Healthcare", "Agriculture", "Healthcare"]
+    regions = ["KwaZulu-Natal", "North West", "Gauteng", "Limpopo", "Eastern Cape", "Free State", "Western Cape"]
+    usage = [150, 95, 120, 85, 140, 90, 130]
     
     analytics_df = pd.DataFrame({
         "Language": languages,
@@ -441,8 +440,10 @@ with tab3:
             names="Language", 
             values="count",
             color="Language",
-            color_discrete_map={"Zulu": "#FFD54F", "Tswana": "#4FC3F7"}
+            color_discrete_map={"Zulu": "#FFD54F", "Tswana": "#4FC3F7"},
+            hole=0.3
         )
+        fig1.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig1, use_container_width=True)
         
         st.markdown("#### Regional Adoption")
@@ -452,27 +453,30 @@ with tab3:
             x="Region", 
             y="Usage",
             color="Region",
-            title="Usage by Region"
+            title="Usage by Region",
+            height=400
         )
         st.plotly_chart(fig2, use_container_width=True)
     
     with col2:
         st.markdown("#### Domain Usage")
         domain_counts = analytics_df["Domain"].value_counts().reset_index()
-        fig3 = px.bar(
+        fig3 = px.pie(
             domain_counts, 
-            x="Domain", 
-            y="count",
+            names="Domain", 
+            values="count",
             color="Domain",
             color_discrete_sequence=["#2c5f2d", "#97bc62"],
-            title="Usage by Application Domain"
+            title="Usage by Application Domain",
+            hole=0.3
         )
+        fig3.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig3, use_container_width=True)
         
         st.markdown("#### Monthly Growth")
-        months = ["Jan", "Feb", "Mar", "Apr", "May"]
-        zulu_growth = [50, 75, 90, 110, 140]
-        tswana_growth = [30, 50, 65, 80, 100]
+        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+        zulu_growth = [80, 110, 150, 190, 240, 300]
+        tswana_growth = [50, 75, 110, 150, 190, 240]
         
         fig4 = px.line(
             x=months,
@@ -481,7 +485,12 @@ with tab3:
             labels={"x": "Month", "value": "Users"},
             color_discrete_sequence=["#FFD54F", "#4FC3F7"]
         )
-        fig4.update_layout(showlegend=True)
+        fig4.update_layout(
+            showlegend=True,
+            yaxis_title="Users",
+            xaxis_title="Month",
+            height=400
+        )
         fig4.data[0].name = "Zulu"
         fig4.data[1].name = "Tswana"
         st.plotly_chart(fig4, use_container_width=True)
@@ -490,7 +499,7 @@ with tab3:
 st.divider()
 st.markdown("""
 <div style="text-align:center; color:#6c757d; font-size:0.9em; padding:20px;">
-    Indigenous Language Voice Assistant v1.0 | 
+    Indigenous Language Voice Assistant v2.0 | 
     <a href="#" style="color:#2c5f2d;">Privacy Policy</a> | 
     <a href="#" style="color:#2c5f2d;">Research Methodology</a> | 
     <a href="#" style="color:#2c5f2d;">Community Guidelines</a>

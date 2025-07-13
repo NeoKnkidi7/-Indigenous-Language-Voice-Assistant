@@ -1,18 +1,9 @@
 import streamlit as st
-import av
 from gtts import gTTS
-import base64
-from pydub import AudioSegment
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import os
-import sys
-import time
-
-# Add FFmpeg to system path
-os.environ["PATH"] += os.pathsep + '/usr/bin/'
-sys.path.append('/usr/bin/ffmpeg')
 
 # Set environment variables
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -54,20 +45,6 @@ st.markdown("""
     .zulu-badge {background-color: #ffd54f; color: #1e3d36;}
     .tswana-badge {background-color: #4fc3f7; color: #1e3d36;}
     .response-card {background-color: #e8f5e9; padding: 20px; border-radius: 10px; margin: 15px 0;}
-    .mic-animation {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background-color: #e63946;
-        animation: pulse 1.5s infinite;
-        margin-right: 10px;
-    }
-    @keyframes pulse {
-        0% {transform: scale(0.8); opacity: 0.7;}
-        50% {transform: scale(1.2); opacity: 1;}
-        100% {transform: scale(0.8); opacity: 0.7;}
-    }
     .voice-input-container {
         display: flex;
         gap: 10px;
@@ -86,8 +63,6 @@ if 'audio_response' not in st.session_state:
     st.session_state.audio_response = None
 if 'domain' not in st.session_state:
     st.session_state.domain = "Healthcare"
-if 'listening' not in st.session_state:
-    st.session_state.listening = False
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
 
@@ -139,18 +114,11 @@ def generate_audio_response(text, language):
         st.error(f"Audio generation failed: {str(e)}")
         return None
 
-# Simple voice activity detection
-def detect_voice_activity(audio_frame):
-    # Simple RMS-based voice activity detection
-    audio_data = audio_frame.to_ndarray(format="f32le")
-    rms = np.sqrt(np.mean(audio_data**2))
-    return rms > 0.02  # Threshold for voice detection
-
 # App layout
 st.title("🗣️ Indigenous Language Voice Assistant")
 st.markdown("""
 **Bridging the digital divide for Zulu and Tswana speakers through voice technology**  
-*Powered by Mozilla DeepSpeech, NWU Language Lab, and Google Text-to-Speech*
+*Powered by Google Text-to-Speech and NWU Language Lab*
 """)
 st.divider()
 
@@ -174,9 +142,9 @@ with st.sidebar:
     st.divider()
     st.markdown("""
     **Technology Stack:**
-    - NWU Language Lab Resources
     - Google Text-to-Speech
-    - Streamlit Web Components
+    - NWU Language Lab Resources
+    - Streamlit Web Framework
     """)
     
     st.divider()
@@ -186,7 +154,7 @@ with st.sidebar:
     - Agricultural advisory
     - Healthcare information
     - Multilingual responses
-    - Voice responses
+    - Audio responses
     """)
     
     st.divider()
@@ -214,7 +182,6 @@ with tab1:
         
         if submit_button and user_input:
             st.session_state.user_input = user_input
-            st.session_state.listening = False
             
             # Process query
             domain_key = st.session_state.domain.lower()

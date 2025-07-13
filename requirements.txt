@@ -1,5 +1,4 @@
-# requirements.txt
-streamlit==1.32.0
+streamlit==1.46.1  # Matches the version the system tries to upgrade to
 streamlit-webrtc==0.47.1
 transformers==4.41.0
 torch==2.3.0
@@ -10,3 +9,4 @@ plotly==5.18.0
 pandas==2.0.3
 numpy==1.24.3
 protobuf==4.25.3
+ffmpeg-python==0.2.0  # Fixes pydub's ffmpeg warning
